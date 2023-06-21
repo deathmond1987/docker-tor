@@ -25,7 +25,6 @@ RUN apk --no-cache add --update \
 RUN wget $TORGZ
 #COPY ./tor-$TOR_VER.tar.gz.sha256sum.asc ./
 #COPY ./tor-$TOR_VER.tar.gz ./
-## Verify Tor source tarballs asc signatures
 ## Get signature from key server
 #RUN gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys ${TOR_KEY}
 ## Verify that the checksums file is PGP signed by the release signing key
