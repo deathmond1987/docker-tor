@@ -127,5 +127,5 @@ ENTRYPOINT ["/sbin/tini", "--", "entrypoint.sh"]
 CMD ["tor", "-f", "/tor/torrc"]
 
 WORKDIR /tmp/tor
-RUN wget https://github.com/ValdikSS/tor-relay-scanner/releases/download/"$TRS_VER"/tor-relay-scanner-"$TRS_VER".pyz
+RUN wget https://github.com/ValdikSS/tor-relay-scanner/releases/download/"$TRS_VER"/tor-relay-scanner-"$TRS_VER".pyz -O tor-relay-scanner.pyz
 COPY torrc /tmp/tor/
