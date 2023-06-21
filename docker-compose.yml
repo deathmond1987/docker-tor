@@ -1,38 +1,43 @@
 version: "3"
 services:
   autoheal:
-     restart: on-failure
-     image: willfarrell/autoheal
+     container_name: 'tor-autorestart'
+     restart: 'on-failure'
+     image: 'willfarrell/autoheal'
      volumes:
        - /var/run/docker.sock:/var/run/docker.sock
      environment:
-       - "AUTOHEAL_CONTAINER_LABEL=tor"
+       - "AUTOHEAL_CONTAINER_LABEL=all"
   tor:
-    container_name: tor
-    build: ./tor-custom
-#    image: docker.io/deathmond1987/tor_for_r
+    container_name: 'tor'
+    image: 'deathmond1987/tor_for_r:latest'
+#    image: 'docker.io/library/tor-for-ru:test'
+    labels:
+      - autoheal=true
     environment:
       TOR_LOG_CONFIG: 'false'
       TOR_PROXY: 'true'
       TOR_PROXY_PORT: '0.0.0.0:9050'
       TOR_PROXY_ACCEPT: 'accept *'
       TOR_CONTROL: 'true'
-      TOR_CONTROL_PORT: '9051'
+      TOR_CONTROL_PORT: ''
       TOR_CONTROL_PASSWORD: ''
-      TOR_CONTROL_COOKIE: ''
+      TOR_CONTROL_COOKIE: 'true'
       TOR_SERVICE: 'false'
       TOR_RELAY: 'false'
-#      HTTPS_PROXY: "10.38.20.202:3128"
-#      HTTPS_PROXY_CREDS: "student:12345678"
-      MIN_RELAYS: '5'
+      TZ: "Europe/Moscow"
     volumes:
-      - "./entrypoint.sh:/usr/local/bin/entrypoint.sh"
       - "./tor:/tor/"
-      - "/etc/timezone:/etc/timezone:ro"
-      - "/etc/localtime:/etc/localtime:ro"
     ports:
       - "9050:9050/tcp"
-      - "9051:9051"
-    restart: always
-networks:
-  mynetwork:
+#      - "9051:9051"
+    restart: 'always'
+  nyx:
+    container_name: 'nyx'
+    image: 'deathmond1987/tor_for_r:latest'
+    volumes:
+      - "./tor:/tor/"
+    environment:
+      TZ: "Europe/Moscow"
+    entrypoint: |
+           ash -c "sleep 10 && /usr/bin/nyx -s /tor/control.socket"
