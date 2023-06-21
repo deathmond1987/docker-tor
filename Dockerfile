@@ -1,8 +1,7 @@
 ## ALPINE_VER can be overwritten with --build-arg
 ## Pinned version tag from https://hub.docker.com/_/alpine
 ARG ALPINE_VER=latest
-ARG TRS_VER=0.0.9
-ARG TOR_VER=0.4.7.13
+
 ########################################################################################
 ## STAGE ONE - BUILD
 ########################################################################################
@@ -10,6 +9,7 @@ FROM alpine:$ALPINE_VER AS tor-builder
 
 ## TOR_VER can be overwritten with --build-arg at build time
 ## Get latest version from > https://dist.torproject.org/
+ARG TOR_VER=0.4.7.13
 ARG TORGZ=https://dist.torproject.org/tor-$TOR_VER.tar.gz
 #ARG TOR_KEY=0x6AFEE6D49E92B601
 
@@ -46,6 +46,7 @@ RUN tar xfz tor-$TOR_VER.tar.gz &&\
 ########################################################################################
 FROM alpine:$ALPINE_VER as release
 
+ARG TRS_VER=0.0.9
 ## CREATE NON-ROOT USER FOR SECURITY
 RUN addgroup --gid 1001 --system nonroot && \
     adduser  --uid 1000 --system --ingroup nonroot --home /home/nonroot nonroot
