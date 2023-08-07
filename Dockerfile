@@ -46,7 +46,7 @@ RUN tar xfz tor-$TOR_VER.tar.gz &&\
 ########################################################################################
 FROM alpine:$ALPINE_VER as release
 
-ARG TRS_VER=0.0.9
+ARG TRS_VER=1.0.0
 ## CREATE NON-ROOT USER FOR SECURITY
 RUN addgroup --gid 1001 --system nonroot && \
     adduser  --uid 1000 --system --ingroup nonroot --home /home/nonroot nonroot
