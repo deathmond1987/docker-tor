@@ -296,8 +296,8 @@ main
 echo -e "\\n====================================- STARTING TOR WITH RELAYS BUNDLE -===================================="
 ## Display Tor version & torrc in log
 tor --version
-echo "\\nSearhing minimum ${MIN_RELAYS:=5} opened relays to connect...\\n"
+echo -e "\n"
 /usr/bin/python3 tor-relay-scanner.pyz -g ${MIN_RELAYS:=5} --torrc > /tor/relays
-echo "\\nFounded ${MIN_RELAYS:=5} relays. Starting tor..."
+echo -e "\nFounded ${MIN_RELAYS:=5} relays. Starting tor..."
 ## Execute dockerfile CMD as nonroot alternate gosu                                                                                                                           
 su-exec "${PUID}:${PGID}" "$@"
