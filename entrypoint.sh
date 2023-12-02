@@ -1,6 +1,21 @@
 #!/bin/bash
 set -eo pipefail
 
+reset="\033[0m"
+red="\033[0;31m"
+green="\033[0;32m"
+white="\033[0;37m"
+tan="\033[0;33m"
+
+info() { printf "${white}➜ %s${reset}\n" "$@"
+}
+success() { printf "${green}✔ %s${reset}\n" "$@"
+}
+error() { >&2 printf "${red}✖ %s${reset}\n" "$@"
+}
+warn() { printf "${tan}➜ %s${reset}\n" "$@"
+}
+
 # Set config file variable
 TOR_CONFIG_FILE=${DATA_DIR}/torrc
 SERVICE_DIR=${DATA_DIR}/hidden_services
@@ -9,9 +24,9 @@ SERVICE_DIR=${DATA_DIR}/hidden_services
 ## Display TOR torrc config in log
 ##############################################################################
 echo_config(){
-  echo -e "\\n====================================- START ${TOR_CONFIG_FILE} -===================================="
+  warn  "\\n====================================- START ${TOR_CONFIG_FILE} -===================================="
   cat $TOR_CONFIG_FILE
-  echo -e "=====================================- END ${TOR_CONFIG_FILE} -=====================================\\n"
+  success "=====================================- END ${TOR_CONFIG_FILE} -=====================================\\n"
 }
 
 ##############################################################################
@@ -29,17 +44,17 @@ map_user(){
   ## If uid or gid is different to existing modify nonroot user to suit
   if [ ! "$(id -u nonroot)" -eq "$PUID" ]; then usermod -o -u "$PUID" nonroot ; fi
   if [ ! "$(id -g nonroot)" -eq "$PGID" ]; then groupmod -o -g "$PGID" nonroot ; fi
-  echo "Tor set to run as nonroot with uid:$(id -u nonroot) & gid:$(id -g nonroot)"
+  warn "Tor set to run as nonroot with uid:$(id -u nonroot) & gid:$(id -g nonroot)"
 
   ## Make sure volumes directories match nonroot
   chown -R nonroot:nonroot \
     ${DATA_DIR}
-  echo "Enforced ownership of ${DATA_DIR} to nonroot:nonroot"
+  warn "Enforced ownership of ${DATA_DIR} to nonroot:nonroot"
 
   ## Make sure volume permissions are correct
   chmod -R go=rX,u=rwX \
     ${DATA_DIR}
-  echo "Enforced permissions for ${DATA_DIR} to go=rX & u=rwX"
+  warn "Enforced permissions for ${DATA_DIR} to go=rX & u=rwX"
 
   ## Export to the rest of the bash script
   export PUID
@@ -55,27 +70,27 @@ proxy_config(){
   ## Torrc default has proxy set to '0' so we need to have a default setting
   if [[ -n "${TOR_PROXY_PORT}" ]]; then
     sed -i "/SocksPort 0/c\SocksPort ${TOR_PROXY_PORT}" $TOR_CONFIG_FILE
-    echo "Updated proxy binding and port..."
+    warn "Updated proxy binding and port..."
   fi
 
   if $TOR_PROXY_SOCKET; then
     ## Needs to be WorldWritable for bind mounts
     sed -i "/# SocksPort unix:.*/c\SocksPort unix:/tor/socks5.socket WorldWritable RelaxDirModeCheck" $TOR_CONFIG_FILE
-    echo "Updated proxy socket..."
+    warn "Updated proxy socket..."
   fi
 
   ## IP or IP ranges accepted by the proxy. Everything else is rejected
   if [[ -n "${TOR_PROXY_ACCEPT}" ]]; then
     sed -i "/SocksPolicy accept/c\SocksPolicy ${TOR_PROXY_ACCEPT}" $TOR_CONFIG_FILE
-    echo "Updated proxy accept policy..."
+    warn "Updated proxy accept policy..."
   fi
 
   if [[ -n "${HTTPS_PROXY}" ]]; then
-    echo "HTTPSProxy "${HTTPS_PROXY}"" >> $TOR_CONFIG_FILE
+    warn "HTTPSProxy "${HTTPS_PROXY}"" >> $TOR_CONFIG_FILE
   fi
 
   if [[ -n "${HTTPS_PROXY_CREDS}" ]]; then
-    echo "HTTPSProxyAuthenticator "${HTTPS_PROXY_CREDS}"" >> $TOR_CONFIG_FILE
+    warn "HTTPSProxyAuthenticator "${HTTPS_PROXY_CREDS}"" >> $TOR_CONFIG_FILE
   fi
 }
 
@@ -87,35 +102,35 @@ control_config(){
   ## If we have a control port variable set it
   if [[ -n "${TOR_CONTROL_PORT}" ]]; then
     sed -i "/# ControlPort.*/c\ControlPort ${TOR_CONTROL_PORT}" $TOR_CONFIG_FILE
-    echo "Control port set to ${TOR_CONTROL_PORT} ..."
+    warn "Control port set to ${TOR_CONTROL_PORT} ..."
   fi
 
   ## Set control socket if set true
   if $TOR_CONTROL_SOCKET; then
     ## Needs to be WorldWritable for bind mounts
     sed -i "/# ControlSocket unix:.*/c\ControlSocket unix:/tor/control.socket WorldWritable RelaxDirModeCheck" $TOR_CONFIG_FILE
-    echo "Control socket set ..."
+    warn "Control socket set ..."
   fi
 
   ## If we have a password hash it and set
   if [[ -n "${TOR_CONTROL_PASSWORD}" ]]; then
     HASHED_PASSWORD=$(su-exec "${PUID}:${PGID}" tor --hash-password $TOR_CONTROL_PASSWORD)
     sed -i "/# HashedControlPassword.*/c\HashedControlPassword $HASHED_PASSWORD" $TOR_CONFIG_FILE
-    echo "Opened control with password ..."
+    warn "Opened control with password ..."
   fi
 
   ## If cookie is true then set 1
   if $TOR_CONTROL_COOKIE; then
     ## Set control cookie true in config
     sed -i "/# CookieAuthentication.*/c\CookieAuthentication 1" $TOR_CONFIG_FILE
-    echo "Opened control with authentication true ..."
+    warn "Opened control with authentication true ..."
   fi
 
   ## If we don't have a password and no cookie flag, set cookie by default
   if [[ -z "${TOR_CONTROL_PASSWORD}" ]] && [[ ! $TOR_CONTROL_COOKIE ]]; then
     ## Set control cookie true in config
     sed -i "/# CookieAuthentication.*/c\CookieAuthentication 1" $TOR_CONFIG_FILE
-    echo "Password or cookie not set. Defaulting to control with cookie authentication ..."
+    warn "Password or cookie not set. Defaulting to control with cookie authentication ..."
   fi
 }
 
@@ -185,7 +200,7 @@ hidden_services_config(){
     ## Write service name to line to file
     ## I go after services because I am inserted after the same line, so we need to do it backwards.
     sed -i "/## Hidden Services/a\ \nHiddenServiceDir /tor/hidden_services/${service_name}" $TOR_CONFIG_FILE
-    echo "Added hidden service ${service_hostname} to torrc..."
+    warn "Added hidden service ${service_hostname} to torrc..."
 
   done
 
@@ -196,7 +211,7 @@ hidden_services_config(){
 ##############################################################################
 remove_lock_files(){
   rm -f ${DATA_DIR}/data/lock
-  echo "Removed file lock"
+  warn "Removed file lock"
 }
 
 ##############################################################################
@@ -207,7 +222,7 @@ copy_files(){
   cp /tmp/tor/torrc* ${DATA_DIR}
   cp /tmp/tor/tor-man-page.txt ${DATA_DIR}
   ## We are not deleting because we need the config if we are overwriting
-  echo "Copied torrc into /tor..."
+  warn "Copied torrc into /tor..."
 }
 
 ##############################################################################
@@ -219,7 +234,7 @@ link_config(){
   if [[ ! -f /tor/control_auth_cookie  ]] && [[ -f /home/tor/.tor/control_auth_cookie  ]]; then
     mkdir -p /home/tor/.tor
     ln -s /tor/control_auth_cookie /home/tor/.tor/control_auth_cookie
-    echo "Symbolic link authorisation cookie..."
+    warn "Symbolic link authorisation cookie..."
   fi
 }
 
@@ -227,40 +242,40 @@ link_config(){
 ## Initialise docker image
 ##############################################################################
 init(){
-  echo -e "\\n====================================- INITIALISING TOR -===================================="
+  warn "\\n====================================- INITIALISING TOR -===================================="
 
   copy_files
 
   ## Are we setting up a Tor proxy
   if $TOR_PROXY; then
-    echo "Configuring Tor proxy..."
+    warn "Configuring Tor proxy..."
     proxy_config
-    echo "Tor proxy configured..."
+    success "Tor proxy configured..."
   else
     sed -i "/SocksPort.*/c\SocksPort 0" $TOR_CONFIG_FILE
-    echo "Disabled Tor proxy..."
+    warn "Disabled Tor proxy..."
   fi
 
   ## Are we setting up control for Tor
   if $TOR_CONTROL; then
-    echo "Configuring Tor control..."
+    warn "Configuring Tor control..."
     control_config
-    echo "Tor control configured..."
+    success "Tor control configured..."
   else
     sed -i "/ControlPort.*/c\# ControlPort ${TOR_PROXY_CONTROL_PORT}" $TOR_CONFIG_FILE
   fi
 
   ## Are we setting up a Tor hidden service
   if $TOR_SERVICE; then
-    echo "Configure Tor hidden services..."
+    warn "Configure Tor hidden services..."
     hidden_services_config
     client_authorization_config
-    echo "Tor hidden services configured..."
+    success "Tor hidden services configured..."
   fi
 
   # #Are we setting up a Tor relay
   if $TOR_RELAY; then
-    echo "Tor relay no supported in the docker image yet!"
+    error "Tor relay no supported in the docker image yet!"
   fi
 }
 
@@ -272,9 +287,9 @@ main() {
   ## Initialise container if there is no lock file or we are overwriting
   if [[ ! -e $TOR_CONFIG_FILE.lock ]] || $TOR_CONFIG_OVERWRITE; then
     init
-    echo "Only run init once. Delete this file to re-init torrc on container start up." > $TOR_CONFIG_FILE.lock
+    warn "Only run init once. Delete this file to re-init torrc on container start up." > $TOR_CONFIG_FILE.lock
   else
-    echo "Torrc already configured. Skipping config templating..."
+    success "Torrc already configured. Skipping config templating..."
   fi
 
   map_user
@@ -293,10 +308,9 @@ main() {
 ## Call main function
 main
 
-echo -e "\n====================================- STARTING TOR WITH RELAYS BUNDLE -===================================="
-echo -e "\n"
+success "\n====================================- STARTING TOR WITH RELAYS BUNDLE -====================================\n"
 /usr/bin/python3 tor-relay-scanner.pyz -g ${MIN_RELAYS:=5} --torrc > /tor/relays
-echo -e "\nFounded at least ${MIN_RELAYS:=5} relays. Starting tor...\n"
+success "\nFounded at least ${MIN_RELAYS:=5} relays. Starting tor...\n"
 ## Display Tor version & torrc in log
 tor --version
 ## Execute dockerfile CMD as nonroot alternate gosu                                                                                                                           
