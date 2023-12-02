@@ -293,11 +293,11 @@ main() {
 ## Call main function
 main
 
-echo -e "\\n====================================- STARTING TOR WITH RELAYS BUNDLE -===================================="
-## Display Tor version & torrc in log
-tor --version
+echo -e "\n====================================- STARTING TOR WITH RELAYS BUNDLE -===================================="
 echo -e "\n"
 /usr/bin/python3 tor-relay-scanner.pyz -g ${MIN_RELAYS:=5} --torrc > /tor/relays
-echo -e "\nFounded ${MIN_RELAYS:=5} relays. Starting tor..."
+echo -e "\nFounded at least ${MIN_RELAYS:=5} relays. Starting tor...\n"
+## Display Tor version & torrc in log
+tor --version
 ## Execute dockerfile CMD as nonroot alternate gosu                                                                                                                           
 su-exec "${PUID}:${PGID}" "$@"
