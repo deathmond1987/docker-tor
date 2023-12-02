@@ -24,9 +24,13 @@ SERVICE_DIR=${DATA_DIR}/hidden_services
 ## Display TOR torrc config in log
 ##############################################################################
 echo_config(){
-  warn  "\\n====================================- START ${TOR_CONFIG_FILE} -===================================="
+  echo -e ""
+  warn  "====================================- START ${TOR_CONFIG_FILE} -===================================="
+  echo -e ""
   cat $TOR_CONFIG_FILE
-  success "=====================================- END ${TOR_CONFIG_FILE} -=====================================\\n"
+  echo -e ""
+  success "=====================================- END ${TOR_CONFIG_FILE} -====================================="
+  echo -e ""
 }
 
 ##############################################################################
@@ -242,8 +246,10 @@ link_config(){
 ## Initialise docker image
 ##############################################################################
 init(){
-  warn "\\n====================================- INITIALISING TOR -===================================="
-
+  echo -e ""
+  warn "====================================- INITIALISING TOR -===================================="
+  echo -e ""
+  
   copy_files
 
   ## Are we setting up a Tor proxy
@@ -308,9 +314,13 @@ main() {
 ## Call main function
 main
 
-success "\n====================================- STARTING TOR WITH RELAYS BUNDLE -====================================\n"
+echo -e ""
+success "====================================- STARTING TOR WITH RELAYS BUNDLE -===================================="
+echo -e ""
 /usr/bin/python3 tor-relay-scanner.pyz -g ${MIN_RELAYS:=5} --torrc > /tor/relays
-success "\nFounded at least ${MIN_RELAYS:=5} relays. Starting tor...\n"
+echo -e ""
+success "Founded at least ${MIN_RELAYS:=5} relays. Starting tor..."
+echo -e ""
 ## Display Tor version & torrc in log
 tor --version
 ## Execute dockerfile CMD as nonroot alternate gosu                                                                                                                           
