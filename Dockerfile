@@ -60,9 +60,9 @@ RUN apk --no-cache add --update \
     libevent \
     tini bind-tools su-exec \
     openssl shadow coreutils tzdata\
-    python3 py3-pip \
+    python3 pipx \
     wget sed \
-    && pip install nyx
+    && pipx install nyx
     
 
 ## Bitcoind data directory
