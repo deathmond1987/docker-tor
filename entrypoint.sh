@@ -317,7 +317,7 @@ main
 echo -e ""
 success "====================================- STARTING TOR WITH RELAYS BUNDLE -===================================="
 echo -e ""
-/usr/bin/python3 tor-relay-scanner.pyz -g ${MIN_RELAYS:=5} --torrc > /tor/relays
+tor-relay-scanner -g ${MIN_RELAYS:=5} --torrc > /tor/relays
 echo -e ""
 success "Founded at least ${MIN_RELAYS:=5} relays. Starting tor..."
 echo -e ""
