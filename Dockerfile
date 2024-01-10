@@ -3,7 +3,40 @@
 ARG ALPINE_VER=latest
 
 ########################################################################################
-## STAGE ONE - BUILD
+## STAGE ZERO - BUILD TOR RELAY SCANNER
+########################################################################################
+
+FROM alpine:$ALPINE_VER AS bridge-builder
+
+## Set app dir
+ENV APP_DIR=torparse
+## Get build packages
+RUN apk add python3 \
+    py3-pip \
+## pep-668
+    pipx \
+    git \
+    binutils &&\
+## Get pyinstaller
+    pipx install pyinstaller &&\
+## Add pipx to PATH
+    export PATH=/root/.local/bin:$PATH &&\
+## Get source
+    git clone --branch main https://github.com/ValdikSS/tor-relay-scanner.git &&\
+## Move to source dir
+    cd tor-relay-scanner &&\
+## Install package to $APP_DIR
+    pip install . --target "$APP_DIR" &&\
+## Remove cache from dir
+    find "$APP_DIR" -path '*/__pycache__*' -delete &&\
+## copy main to app dir
+    cp "$APP_DIR"/tor_relay_scanner/__main__.py "$APP_DIR"/ &&\
+## build elf from app dir
+    pyinstaller -F --paths "$APP_DIR" "$APP_DIR"/__main__.py
+
+
+########################################################################################
+## STAGE ONE - BUILD TOR
 ########################################################################################
 FROM alpine:$ALPINE_VER AS tor-builder
 
@@ -19,7 +52,8 @@ RUN apk --no-cache add --update \
     gnupg \
     libevent libevent-dev \
     zlib zlib-dev \
-    openssl openssl-dev
+    openssl openssl-dev git
+
 
 ## Get Tor key file and tar source file
 RUN wget $TORGZ
@@ -46,7 +80,6 @@ RUN tar xfz tor-$TOR_VER.tar.gz &&\
 ########################################################################################
 FROM alpine:$ALPINE_VER as release
 
-ARG TRS_VER=1.0.0
 ## CREATE NON-ROOT USER FOR SECURITY
 RUN addgroup --gid 1001 --system nonroot && \
     adduser  --uid 1000 --system --ingroup nonroot --home /home/nonroot nonroot
@@ -60,10 +93,10 @@ RUN apk --no-cache add --update \
     libevent \
     tini bind-tools su-exec \
     openssl shadow coreutils tzdata\
-    python3 pipx \
-    wget sed \
-    && pipx install nyx
-    
+    #python3 pipx \
+    wget sed
+    #&& pipx install
+
 
 ## Bitcoind data directory
 ENV DATA_DIR=/tor
@@ -71,6 +104,7 @@ ENV DATA_DIR=/tor
 ## Create tor directories
 RUN mkdir -p ${DATA_DIR} && chown -R nonroot:nonroot ${DATA_DIR} && chmod -R go+rX,u+rwX ${DATA_DIR}
 
+COPY --from=bridge-builder /tor-relay-scanner/dist/__main__ /usr/local/sbin/tor-relay-scanner
 ## Copy compiled Tor daemon from tor-builder
 COPY --from=tor-builder /usr/local/ /usr/local/
 
@@ -85,7 +119,7 @@ COPY --chown=nonroot:nonroot ./torrc* /tmp/tor/
 COPY --chown=nonroot:nonroot ./tor-man-page.txt /tmp/tor/tor-man-page.txt
 
 ## Copy nyxrc config into default location
-COPY --chown=nonroot:nonroot --chmod=go+rX,u+rwX ./nyxrc /home/tor/.nyx/config
+# COPY --chown=nonroot:nonroot --chmod=go+rX,u+rwX ./nyxrc /home/tor/.nyx/config
 
 ## Docker health check
 HEALTHCHECK --interval=60s --timeout=15s --start-period=60s \
@@ -118,7 +152,7 @@ LABEL version=$TOR_VER
 LABEL description="A docker image for tor with bridge finder"
 LABEL license="GNU"
 LABEL url="https://www.torproject.org"
-LABEL vcs-url="https://github.com/deathmond1987/docker-tor/"  
+LABEL vcs-url="https://github.com/deathmond1987/docker-tor/"
 
 VOLUME [ "$DATA_DIR" ]
 WORKDIR ${DATA_DIR}
@@ -127,5 +161,4 @@ ENTRYPOINT ["/sbin/tini", "--", "entrypoint.sh"]
 CMD ["tor", "-f", "/tor/torrc"]
 
 WORKDIR /tmp/tor
-RUN wget https://github.com/ValdikSS/tor-relay-scanner/releases/download/"$TRS_VER"/tor-relay-scanner-"$TRS_VER".pyz -O tor-relay-scanner.pyz
 COPY torrc /tmp/tor/
