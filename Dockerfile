@@ -1,7 +1,6 @@
 ## ALPINE_VER can be overwritten with --build-arg
 ## Pinned version tag from https://hub.docker.com/_/alpine
-ARG ALPINE_VER=latest
-ARG TOR_VER=0.4.8.10
+ARG ALPINE_VER=latest TOR_VER=0.4.8.10
 ########################################################################################
 ## STAGE ZERO - BUILD TOR RELAY SCANNER
 ########################################################################################
@@ -51,9 +50,9 @@ RUN apk --no-cache add --update \
     gnupg \
     libevent libevent-dev \
     zlib zlib-dev \
-    openssl openssl-dev git &&\
+    openssl openssl-dev git
 ## Get Tor key file and tar source file
-    wget $TORGZ &&\
+RUN wget $TORGZ
 #COPY ./tor-$TOR_VER.tar.gz.sha256sum.asc ./
 #COPY ./tor-$TOR_VER.tar.gz ./
 ## Get signature from key server
@@ -67,7 +66,7 @@ RUN apk --no-cache add --update \
 #    { echo "Couldn't verify Primary key fingerprint!"; exit 1; }
 
 ## Make install Tor
-    tar xfz tor-$TOR_VER.tar.gz &&\
+RUN tar xfz tor-$TOR_VER.tar.gz &&\
     cd tor-$TOR_VER &&\
     ./configure &&\
     make -j 8 install
@@ -90,12 +89,9 @@ RUN apk --no-cache add --update \
     libevent \
     tini bind-tools su-exec \
     openssl shadow coreutils tzdata\
-    #python3 pipx \
     wget sed
-    #&& pipx install
 
-
-## Bitcoind data directory
+## data directory
 ENV DATA_DIR=/tor
 
 ## Create tor directories
@@ -114,9 +110,6 @@ COPY --chown=nonroot:nonroot --chmod=go+rX,u+rwX client_auth.sh /usr/local/bin
 ## Copy torrc config and examples to tmp tor. Entrypoint will copy across to bind-
 COPY --chown=nonroot:nonroot ./torrc* /tmp/tor/
 COPY --chown=nonroot:nonroot ./tor-man-page.txt /tmp/tor/tor-man-page.txt
-
-## Copy nyxrc config into default location
-# COPY --chown=nonroot:nonroot --chmod=go+rX,u+rwX ./nyxrc /home/tor/.nyx/config
 
 ## Docker health check
 HEALTHCHECK --interval=60s --timeout=15s --start-period=60s \
